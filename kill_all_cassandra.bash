@@ -6,6 +6,6 @@ if [ "$(uname -s)" == "Darwin" ]; then
     done
 else
     for pid in $(ps -Afl | grep org.apache.cassandra.thrift.CassandraDaemon | grep -v grep | awk '{ print $4 }'); do
-        kill $pid;
+        kill -9 $pid;
     done
 fi
