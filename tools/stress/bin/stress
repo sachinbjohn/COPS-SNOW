@@ -41,6 +41,9 @@ if [ "x$CLASSPATH" = "x" ]; then
     done
 fi
 
+CONF=$(readlink -f `dirname $0`/../../../conf)
+CLASSPATH=$CLASSPATH:$CONF
+
 if [ -x $JAVA_HOME/bin/java ]; then
     JAVA=$JAVA_HOME/bin/java
 else
@@ -52,4 +55,4 @@ if [ "x$JAVA" = "x" ]; then
     exit 1
 fi
 
-$JAVA -server -cp $CLASSPATH org.apache.cassandra.stress.Stress $@
+$JAVA -server -cp $CLASSPATH -Dlog4j.configuration=log4j-tools.properties org.apache.cassandra.stress.Stress $@
