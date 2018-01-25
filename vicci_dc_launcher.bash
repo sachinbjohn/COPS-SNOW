@@ -41,7 +41,6 @@ ${cops_dir}/kill_all_cassandra.bash;\
 rm ${cops_dir}/*hprof 2> /dev/null;\
 rm ${var_dir}/cassandra*log 2> /dev/null;\
 rm ${var_dir}/cassandra*log* 2> /dev/null;\
-rm -f ${cops_dir}/tools/stress/stress.log 2> /dev/null;\
 rm -rf ${var_dir}/data/* 2> /dev/null;\
 rm -rf ${var_dir}/commitlog/* 2> /dev/null;\
 rm -rf ${var_dir}/saved_caches/* 2> /dev/null;\

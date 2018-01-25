@@ -103,13 +103,13 @@ public class StressAction extends Thread
 
         Producer producer = new Producer();
         // Wait until all clients are up
-        if(client.getOperation() == Stress.Operations.EXP10) {
+        boolean isExp10 = client.getOperation() == Stress.Operations.EXP10;
+        if(isExp10) {
             try {
                 new ClientSyncer(client, -1, output).run(client.getClientLibrary());
             } catch (Exception e) {
                 System.err.println(e.getMessage());
                 e.printStackTrace();
-                //System.exit(-1);
             }
         }
 
@@ -139,16 +139,14 @@ public class StressAction extends Thread
         while (!terminate)
         {
             if (before && client.exptDurationMs > client.warmupPeriodSeconds * 1000) {
-                output.println("Start stats");
                 client.measureStats = true;
                 before = false;
             }
             if (!after && client.exptDurationMs > (client.warmupPeriodSeconds + client.specifiedExptDurationSeconds) * 1000) {
-                output.println("End stats");
                 client.measureStats = false;
                 after = true;
             }
-            if (stop || client.exptDurationMs > (client.specifiedExptDurationSeconds+2*client.warmupPeriodSeconds) * 1000)
+            if (stop || (isExp10 && client.exptDurationMs > (client.specifiedExptDurationSeconds+2*client.warmupPeriodSeconds) * 1000))
             {
                 producer.stopProducer();
 
