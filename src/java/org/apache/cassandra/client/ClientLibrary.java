@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ClientLibrary {
+    private static Logger logger = LoggerFactory.getLogger(ClientLibrary.class);
     private final HashMap<InetAddress, Cassandra.Client> addressToClient = new HashMap<InetAddress, Cassandra.Client>();
     private final HashMap<InetAddress, Cassandra.AsyncClient> addressToAsyncClient = new HashMap<InetAddress, Cassandra.AsyncClient>();
 
@@ -63,7 +64,6 @@ public class ClientLibrary {
     public static int numTwoRoundKeys = 0; // count the number of keys going to 2nd round
     */
 
-    private final Logger logger = LoggerFactory.getLogger(ClientLibrary.class);
 
     public ClientLibrary(Map<String, Integer> localServerIPAndPorts, String keyspace, ConsistencyLevel consistencyLevel)
     throws Exception

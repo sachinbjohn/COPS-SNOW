@@ -423,8 +423,10 @@ public class ThriftConverter
            if (logger.isTraceEnabled()) {
                if (column.previousVersions() != null) {
                    String previousVersions = new String();
-                   for (IColumn oldColumn : column.previousVersions()) {
-                       previousVersions += ", " + oldColumn.earliestValidTime() + "-";
+                   synchronized (column) {
+                       for (IColumn oldColumn : column.previousVersions()) {
+                           previousVersions += ", " + oldColumn.earliestValidTime() + "-";
+                       }
                    }
                    previousVersions = "{" + previousVersions.substring(2) + "}";
                    logger.trace("picking chosenTime={} from previousVersons={}, current={}-", new Object[]{chosenTime, previousVersions, currentlyVisibleColumn.earliestValidTime()});
@@ -438,12 +440,14 @@ public class ThriftConverter
                Set<Long> pendingTransactionIds = findAndUpdatePendingTransactions((org.apache.cassandra.db.Column) column, chosenTime, currentlyVisibleColumn);
                return new ChosenColumnResult(thriftifyIColumn(column), pendingTransactionIds);
            } else {
-               if (column.previousVersions() != null) {
-                   for (IColumn oldColumn : column.previousVersions()) {
-                       // goes through column by most recent first
-                       if (oldColumn.earliestValidTime() <= chosenTime) {
-                           Set<Long> pendingTransactionIds =  findAndUpdatePendingTransactions((org.apache.cassandra.db.Column) oldColumn, chosenTime, currentlyVisibleColumn);
-                           return new ChosenColumnResult(thriftifyIColumn(oldColumn), pendingTransactionIds);
+               synchronized (column) {
+                   if (column.previousVersions() != null) {
+                       for (IColumn oldColumn : column.previousVersions()) {
+                           // goes through column by most recent first
+                           if (oldColumn.earliestValidTime() <= chosenTime) {
+                               Set<Long> pendingTransactionIds = findAndUpdatePendingTransactions((org.apache.cassandra.db.Column) oldColumn, chosenTime, currentlyVisibleColumn);
+                               return new ChosenColumnResult(thriftifyIColumn(oldColumn), pendingTransactionIds);
+                           }
                        }
                    }
                }

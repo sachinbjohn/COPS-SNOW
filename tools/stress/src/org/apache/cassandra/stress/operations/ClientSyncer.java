@@ -14,8 +14,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientSyncer extends Operation {
+    private static Logger logger = LoggerFactory.getLogger(ClientSyncer.class);
     private PrintStream output;
     public int getKeyForClient(int i) {
         return session.getNumDifferentKeys() + i + 10;
@@ -62,6 +65,7 @@ public class ClientSyncer extends Operation {
             }
             catch (Exception e)
             {
+                logger.error("ClientSyncer write has error",e);
                 exceptionMessage = getExceptionMessage(e);
                 success = false;
             }
@@ -69,7 +73,7 @@ public class ClientSyncer extends Operation {
 
         if (!success)
         {
-            error(String.format("Error inserting unique key %s %s%n",
+            logger.error(String.format("Error inserting unique key %s %s%n",
                     rawKey,
                     (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")"));
         }
@@ -110,11 +114,12 @@ public class ClientSyncer extends Operation {
                 Thread.sleep(200);
             } catch (Exception e) {
                 exceptionMessage = getExceptionMessage(e);
+                logger.error("ClientSyncer write has error",e);
             }
         }
 
         if (!success) {
-            error(String.format("Wait for clients failed  %s!!!!!",  (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")"));
+            logger.error(String.format("Wait for clients failed  %s!!!!!",  (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")"));
         }
 
     }

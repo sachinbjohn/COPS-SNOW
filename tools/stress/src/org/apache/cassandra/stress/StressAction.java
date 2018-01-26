@@ -31,9 +31,12 @@ import org.apache.cassandra.stress.util.Operation;
 import org.apache.cassandra.thrift.Cassandra;
 
 import static com.google.common.base.Charsets.UTF_8;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StressAction extends Thread
 {
+    private static Logger logger = LoggerFactory.getLogger(StressAction.class);
     /**
      * Producer-Consumer model: 1 producer, N consumers
      */
@@ -88,8 +91,6 @@ public class StressAction extends Thread
         int threadCount = client.getThreads();
         Consumer[] consumers = new Consumer[threadCount];
 
-        output.println("total,interval_op_rate,interval_key_rate,avg_latency,elapsed_time");
-
         int itemsPerThread = client.getKeysPerThread();
         int modulo = client.getNumKeys() % threadCount;
 
@@ -108,6 +109,7 @@ public class StressAction extends Thread
             try {
                 new ClientSyncer(client, -1, output).run(client.getClientLibrary());
             } catch (Exception e) {
+                logger.error("ClientSyncer has exception", e);
                 System.err.println(e.getMessage());
                 e.printStackTrace();
             }
@@ -200,7 +202,7 @@ public class StressAction extends Thread
                 long currentTimeInSeconds = client.exptDurationMs / 1000;
                 String formattedDelta = (opDelta > 0) ? Double.toString(latencyDelta / (opDelta * 1000)) : "NaN";
 
-                output.println(String.format("%d,%d,%d,%d,%d,%s,%d", total, opDelta / interval, keyDelta / interval, columnDelta / interval, byteDelta / interval, formattedDelta, currentTimeInSeconds));
+                output.println(String.format("Alive= %d,%d,%d,%d,%d,%d,%s,%d", alive, total, opDelta / interval, keyDelta / interval, columnDelta / interval, byteDelta / interval, formattedDelta, currentTimeInSeconds));
             }
         }
 
@@ -365,12 +367,10 @@ public class StressAction extends Thread
                 if (stop)
                     break;
 
-                try
-                {
+                try {
                     operations.put(createOperation((i % client.getNumDifferentKeys()) + client.getKeysOffset()));
-                }
-                catch (InterruptedException e)
-                {
+                } catch (InterruptedException e) {
+                    logger.error("Producer error", e);
                     System.err.println("Producer error - " + e.getMessage());
                     return;
                 }
@@ -397,71 +397,55 @@ public class StressAction extends Thread
         }
 
         @Override
-        public void run()
-        {
-            if (client.getOperation() == Stress.Operations.DYNAMIC ||
-                    client.getOperation() == Stress.Operations.INSERTCL ||
-                    client.getOperation() == Stress.Operations.FACEBOOK ||
-                    client.getOperation() == Stress.Operations.FACEBOOK_POPULATE ||
-                    client.getOperation() == Stress.Operations.WRITE_TXN ||
-                    client.getOperation() == Stress.Operations.BATCH_MUTATE ||
-                    client.getOperation() == Stress.Operations.TWO_ROUND_READ_TXN ||
-                    client.getOperation() == Stress.Operations.DYNAMIC_ONE_SERVER ||
-                    client.getOperation() == Stress.Operations.EXP10)
-            {
-                ClientLibrary library = client.getClientLibrary();
+        public void run() {
+            try {
+                if (client.getOperation() == Stress.Operations.DYNAMIC ||
+                        client.getOperation() == Stress.Operations.INSERTCL ||
+                        client.getOperation() == Stress.Operations.FACEBOOK ||
+                        client.getOperation() == Stress.Operations.FACEBOOK_POPULATE ||
+                        client.getOperation() == Stress.Operations.WRITE_TXN ||
+                        client.getOperation() == Stress.Operations.BATCH_MUTATE ||
+                        client.getOperation() == Stress.Operations.TWO_ROUND_READ_TXN ||
+                        client.getOperation() == Stress.Operations.DYNAMIC_ONE_SERVER ||
+                        client.getOperation() == Stress.Operations.EXP10) {
+                    ClientLibrary library = client.getClientLibrary();
 
-                for (int i = 0; i < items; i++)
-                {
-                    if (stop)
-                        break;
+                    for (int i = 0; i < items; i++) {
+                        if (stop)
+                            break;
 
-                    try
-                    {
-                        operations.take().run(library); // running job
-                    }
-		    catch (Exception e)
-		    {
-			if (output == null)
-		        {
-			    System.err.println(e.getMessage());
-			    e.printStackTrace();
-			    System.exit(-1);
-			}
-			output.println(e.getMessage());
-			e.printStackTrace();
-			break;
-                    }
-                }
-            }
-            else
-            {
-                Cassandra.Client connection = client.getClient();
-
-                for (int i = 0; i < items; i++)
-                {
-                    if (stop)
-                        break;
-
-                    try
-                    {
-                        operations.take().run(connection); // running job
-                    }
-                    catch (Exception e)
-                    {
-                        if (output == null)
-                        {
-                            System.err.println(e.getMessage());
-			    e.printStackTrace();
-                            System.exit(-1);
+                        try {
+                            operations.take().run(library); // running job
+                        } catch (Exception e) {
+                            logger.error("Consumer encountered error in operation", e);
                         }
 
+                    }
+                } else {
+                    Cassandra.Client connection = client.getClient();
 
-                        output.println(e.getMessage());
-			e.printStackTrace();
-                        break;
+                    for (int i = 0; i < items; i++) {
+                        if (stop)
+                            break;
+
+                        try {
+                            operations.take().run(connection); // running job
+                        } catch (Exception e) {
+                            if (output == null) {
+                                System.err.println(e.getMessage());
+                                e.printStackTrace();
+                                System.exit(-1);
+                            }
+
+
+                            output.println(e.getMessage());
+                            e.printStackTrace();
+                            break;
+                        }
                     }
                 }
+            } catch (Throwable e) {
+                logger.error("Consumer has error", e);
             }
         }
 

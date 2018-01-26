@@ -228,48 +228,49 @@ public class CassandraServer implements Cassandra.Iface
     public MultigetSliceResult multiget_slice(List<ByteBuffer> keys, ColumnParent column_parent, SlicePredicate predicate, ConsistencyLevel consistency_level, long lts)
     throws InvalidRequestException, UnavailableException, TimedOutException
     {
-        LamportClock.updateTime(lts >> 16); //snow: lts passed in is transid, which is ts + ip
-        logger.debug("multiget_slice");
+        try {
+            LamportClock.updateTime(lts >> 16); //snow: lts passed in is transid, which is ts + ip
+            logger.debug("multiget_slice");
 
-        //HL check ReadTransactionIdTracker for each locator_key. Note: keys have keys have
-        //multiple locator keys.
-        //We check through each locator key, and split all keys into two key lists
-        //One is for normal read, the other is for returning old versions.
-        //Note: We're doing this because we need check transaction ids at locator_key granularity.
-        List<ByteBuffer> keysToReturnOld = new ArrayList<ByteBuffer>();
-        List<ByteBuffer> keysToReturnCurrent = new ArrayList<ByteBuffer>();
-        long chosenTime = Integer.MAX_VALUE;    //get chosen time for multiget_slice_by_time
-        long transactionTime = LamportClock.getCurrentTime();   //used to put in transactionIdTracker
-        for (ByteBuffer key : keys) {
-            long returnedTxnTime = ReadTransactionIdTracker.checkIfTxnIdBeenRecorded(key, lts, false, 0L);
-            if (returnedTxnTime != 0) {
-                keysToReturnOld.add(key);
-                chosenTime = Math.min(chosenTime, returnedTxnTime);
-            } else {
-                keysToReturnCurrent.add(key);
+            //HL check ReadTransactionIdTracker for each locator_key. Note: keys have keys have
+            //multiple locator keys.
+            //We check through each locator key, and split all keys into two key lists
+            //One is for normal read, the other is for returning old versions.
+            //Note: We're doing this because we need check transaction ids at locator_key granularity.
+            List<ByteBuffer> keysToReturnOld = new ArrayList<ByteBuffer>();
+            List<ByteBuffer> keysToReturnCurrent = new ArrayList<ByteBuffer>();
+            long chosenTime = Integer.MAX_VALUE;    //get chosen time for multiget_slice_by_time
+            long transactionTime = LamportClock.getCurrentTime();   //used to put in transactionIdTracker
+            for (ByteBuffer key : keys) {
+                long returnedTxnTime = ReadTransactionIdTracker.checkIfTxnIdBeenRecorded(key, lts, false, 0L);
+                if (returnedTxnTime != 0) {
+                    keysToReturnOld.add(key);
+                    chosenTime = Math.min(chosenTime, returnedTxnTime);
+                } else {
+                    keysToReturnCurrent.add(key);
+                }
             }
-        }
 
-        Map<ByteBuffer, List<ColumnOrSuperColumn>> combinedResults = new HashMap<ByteBuffer, List<ColumnOrSuperColumn>>();
-        if (keysToReturnOld.isEmpty()) {
-            // do normal reads
-            state().hasColumnFamilyAccess(column_parent.column_family, Permission.READ);
-            Map<ByteBuffer, List<ColumnOrSuperColumn>> normalReadResult = multigetSliceInternal(state().getKeyspace(), keys, column_parent, predicate, consistency_level);
-            combinedResults.putAll(normalReadResult);
-            return new MultigetSliceResult(combinedResults, LamportClock.sendTimestamp());
-        } else {
-            // do special reads for all keys
-            ISliceMap iSliceMap = multigetSliceInternal(state().getKeyspace(), keys, column_parent, predicate, consistency_level, false);
-            assert iSliceMap instanceof InternalSliceMap : "thriftified was false, so it should be an internal map";
-            Map<ByteBuffer, Collection<IColumn>> keyToColumnFamily = ((InternalSliceMap) iSliceMap).cassandraMap;
-            //select results for each key that were visible at the chosen_time
-            Map<ByteBuffer, List<ColumnOrSuperColumn>> keyToChosenColumns = new HashMap<ByteBuffer, List<ColumnOrSuperColumn>>();
-            Set<Long> pendingTransactionIds = new HashSet<Long>();
-            //pendingTransactions for now is always null -- we don't consider WOT for now
-            selectChosenResults(keyToColumnFamily, predicate, chosenTime, keyToChosenColumns, pendingTransactionIds);
-            combinedResults.putAll(keyToChosenColumns);
-            return new MultigetSliceResult(combinedResults, LamportClock.sendTimestamp());
-        }
+            Map<ByteBuffer, List<ColumnOrSuperColumn>> combinedResults = new HashMap<ByteBuffer, List<ColumnOrSuperColumn>>();
+            if (keysToReturnOld.isEmpty()) {
+                // do normal reads
+                state().hasColumnFamilyAccess(column_parent.column_family, Permission.READ);
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> normalReadResult = multigetSliceInternal(state().getKeyspace(), keys, column_parent, predicate, consistency_level);
+                combinedResults.putAll(normalReadResult);
+                return new MultigetSliceResult(combinedResults, LamportClock.sendTimestamp());
+            } else {
+                // do special reads for all keys
+                ISliceMap iSliceMap = multigetSliceInternal(state().getKeyspace(), keys, column_parent, predicate, consistency_level, false);
+                assert iSliceMap instanceof InternalSliceMap : "thriftified was false, so it should be an internal map";
+                Map<ByteBuffer, Collection<IColumn>> keyToColumnFamily = ((InternalSliceMap) iSliceMap).cassandraMap;
+                //select results for each key that were visible at the chosen_time
+                Map<ByteBuffer, List<ColumnOrSuperColumn>> keyToChosenColumns = new HashMap<ByteBuffer, List<ColumnOrSuperColumn>>();
+                Set<Long> pendingTransactionIds = new HashSet<Long>();
+                //pendingTransactions for now is always null -- we don't consider WOT for now
+                selectChosenResults(keyToColumnFamily, predicate, chosenTime, keyToChosenColumns, pendingTransactionIds);
+                combinedResults.putAll(keyToChosenColumns);
+                return new MultigetSliceResult(combinedResults, LamportClock.sendTimestamp());
+            }
 
         /*
          * Comment out Eiger's code
@@ -299,6 +300,10 @@ public class CassandraServer implements Cassandra.Iface
         }
         return new MultigetSliceResult(result, LamportClock.sendTimestamp());
         */
+        } catch (Exception ex) {
+            logger.error("MultiGetSlice has error", ex);
+            throw new InvalidRequestException(ex.getLocalizedMessage());
+        }
     }
 
 
@@ -806,18 +811,23 @@ public class CassandraServer implements Cassandra.Iface
     public BatchMutateResult batch_mutate(Map<ByteBuffer,Map<String,List<Mutation>>> mutation_map, ConsistencyLevel consistency_level, Set<Dep> deps, long lts)
     throws InvalidRequestException, UnavailableException, TimedOutException
     {
-        //HL: record current effective time to pass along with dep_check
-        //This effective time is the version before this mutate, and will be used as chosenTime later for ROT if needed.
-        long chosenTime = LamportClock.currentVersion();
+        try {
+            //HL: record current effective time to pass along with dep_check
+            //This effective time is the version before this mutate, and will be used as chosenTime later for ROT if needed.
+            long chosenTime = LamportClock.currentVersion();
 
-        LamportClock.updateTime(lts);
-        logger.debug("batch_mutate");
+            LamportClock.updateTime(lts);
+            logger.debug("batch_mutate");
 
-        Set<Dep> new_deps = internal_batch_mutate(mutation_map, consistency_level, deps, chosenTime);
-        if (logger.isTraceEnabled()) {
-            logger.trace("batch_mutate({}, {}, {}, {}) = {}", new Object[]{mutation_map, consistency_level, deps, lts, new_deps});
+            Set<Dep> new_deps = internal_batch_mutate(mutation_map, consistency_level, deps, chosenTime);
+            if (logger.isTraceEnabled()) {
+                logger.trace("batch_mutate({}, {}, {}, {}) = {}", new Object[]{mutation_map, consistency_level, deps, lts, new_deps});
+            }
+            return new BatchMutateResult(new_deps, LamportClock.sendTimestamp());
+        } catch (Exception ex) {
+            logger.error("BatchMutate has error",ex);
+            throw new InvalidRequestException(ex.getLocalizedMessage());
         }
-        return new BatchMutateResult(new_deps, LamportClock.sendTimestamp());
     }
 
     private long internal_remove(ByteBuffer key, ColumnPath column_path, long timestamp, ConsistencyLevel consistency_level, Set<Dep> deps, boolean isCommutativeOp)

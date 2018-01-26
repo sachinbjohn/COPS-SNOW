@@ -13,9 +13,10 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
 
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class Experiment10 extends Operation {
-
+    private static Logger logger = LoggerFactory.getLogger(Experiment10.class);
     private static ZipfianGenerator zipfGen;
     private static ByteBuffer value;
     public Experiment10(Session session, int index) {
@@ -131,14 +132,16 @@ public class Experiment10 extends Operation {
 
             } catch (Exception e) {
                 exceptionMessage = getExceptionMessage(e);
+                logger.error("Exp10 has error", e);
             }
         }
         if (!success) {
-            error(String.format("Operation [%d] retried %d times - error on calling multiget_slice for keys %s %s%n",
+            String eMsg = String.format("Operation [%d] retried %d times - error on calling multiget_slice for keys %s %s%n",
                     index,
                     session.getRetryTimes(),
                     keys,
-                    (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")"));
+                    (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")");
+            logger.error(eMsg);
         }
         if (session.measureStats) {
             session.operations.getAndIncrement();
@@ -182,7 +185,7 @@ public class Experiment10 extends Operation {
             }
         }
         if (!success) {
-            error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
+            logger.error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
                     index,
                     session.getRetryTimes(),
                     key,

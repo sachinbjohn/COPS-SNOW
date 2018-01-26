@@ -32,9 +32,11 @@ import org.apache.cassandra.thrift.*;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.LamportClock;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public class Inserter extends Operation
 {
+    private static Logger logger = LoggerFactory.getLogger(Inserter.class);
     private static List<ByteBuffer> values;
 
     public Inserter(Session client, int index)
@@ -104,7 +106,7 @@ public class Inserter extends Operation
 
         if (!success)
         {
-            error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
+            logger.error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
                                 index,
                                 session.getRetryTimes(),
                                 rawKey,
@@ -177,7 +179,7 @@ public class Inserter extends Operation
 
         if (!success)
         {
-            error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
+            logger.error(String.format("Operation [%d] retried %d times - error inserting key %s %s%n",
                                 index,
                                 session.getRetryTimes(),
                                 rawKey,
