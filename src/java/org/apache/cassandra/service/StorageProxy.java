@@ -110,7 +110,7 @@ public class StorageProxy implements StorageProxyMBean
         float avgMsgW = numMsg / (1.0f * numW);
         float avgIdMsg = totIds / (1.0f * numMsg);
         float avgIdW = totIds / (1.0f * numW);
-        return String.format("PutStats, %d, %d, %d, %d, %f, %f, %f%n",numW, numMsg, totIds, uniqIds, avgMsgW, avgIdW, avgIdW);
+        return String.format("PutStats, %d, %d, %d, %d, %f, %f, %f%n",numW, numMsg, totIds, uniqIds, avgMsgW, avgIdMsg, avgIdW);
     }
 
     static

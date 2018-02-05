@@ -275,7 +275,7 @@ process_exp10() {
     local write_frac=$5
     local zipf_const=$6
     local data_file_name=$1_$2_$3_$4_$5_$6
-    find $output_dir -name "${data_file_name}*.stderr" | xargs -n1  grep -E 'COPS|Eiger' >> "${output_dir}/${data_file_name}.csv"
+    find $output_dir -name "${data_file_name}_*.stderr" | xargs -n1  grep -E 'COPS|Eiger' >> "${output_dir}/${data_file_name}.csv"
 }
 
 
