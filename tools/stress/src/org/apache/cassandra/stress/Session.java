@@ -122,6 +122,8 @@ public class Session implements Serializable
         availableOptions.addOption("",  "write-transaction-fraction", true,   "Fraction of ops to be transactions, 0-1");
 
         availableOptions.addOption("",  "num-servers",             true,   "The number of servers in each cluster, required for write-txn workload");
+        availableOptions.addOption("",  "num-dcs",             true,   "The number of datacenters");
+        availableOptions.addOption("",  "dc-index",             true,   "The index of datacenter to which client is connected to");
         availableOptions.addOption("",  "keys-per-server",         true,   "The number of keys to write on each server in a write txn");
         availableOptions.addOption("",  "servers-per-txn",         true,   "The number of servers to include in each write txn");
 
@@ -141,6 +143,8 @@ public class Session implements Serializable
     private int columnSize       = 34;
     private int cardinality      = 50;
     private String[] nodes       = new String[] { "127.0.0.1" };
+    public byte numDCs            = 1;
+    public byte dcIndex           = 0;
     private boolean random       = false;
     private boolean unframed     = false;
     private int retryTimes       = 10;
@@ -503,6 +507,16 @@ public class Session implements Serializable
                 num_servers = Integer.parseInt(cmd.getOptionValue("num-servers"));
                 if (num_servers <= 0)
                     throw new RuntimeException("Invalid num-servers value");
+            }
+            if(cmd.hasOption("num-dcs")) {
+                numDCs = Byte.parseByte(cmd.getOptionValue("num-dcs"));
+                if(numDCs <= 0)
+                    throw new RuntimeException("Invalid num-dcs value");
+            }
+            if(cmd.hasOption("dc-index")) {
+                dcIndex = Byte.parseByte(cmd.getOptionValue("dc-index"));
+                if(dcIndex < 0)
+                    throw new RuntimeException("Invalid dc-index value");
             }
             if (cmd.hasOption("keys-per-server")) {
                 keys_per_server = Integer.parseInt(cmd.getOptionValue("keys-per-server"));
