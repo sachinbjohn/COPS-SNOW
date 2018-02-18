@@ -30,13 +30,14 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
     //update txnid list
     private final long chosenTime;          //HL: used to query read by time
     private final int numEP;		    //HL: number of endpoints
-
-    public FetchTxnIdsCallBack(ICompletable completable, Map<ByteBuffer, HashSet<ByteBuffer>> mutationMap, long chosenTime, int numEP)
+    private final HashMap<ByteBuffer, Set<Long>> uniqIds;
+    public FetchTxnIdsCallBack(ICompletable completable, Map<ByteBuffer, HashSet<ByteBuffer>> mutationMap, long chosenTime, int numEP, HashMap<ByteBuffer, Set<Long>> uniqIds)
     {
         this.mutationMap = mutationMap;
         this.completable = completable;
         this.chosenTime = chosenTime;
         this.numEP = numEP;
+        this.uniqIds = uniqIds;
     }
 
     @Override
@@ -99,6 +100,19 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
             idList.clear();
         }
         for (Map.Entry<ByteBuffer, ArrayList<Long>> entry : returnedIdsMap.entrySet()) {
+            Set<Long> idset;
+            synchronized(uniqIds) {
+                ByteBuffer key = entry.getKey();
+                if(uniqIds.containsKey(key))
+                    idset = uniqIds.get(key);
+                else {
+                    idset = new HashSet<>();
+                    uniqIds.put(key, idset);
+                }
+            }
+            synchronized(idset) {
+                idset.addAll(entry.getValue());
+            }
             ReadTransactionIdTracker.checkIfTxnIdBeenRecorded(entry.getKey(), entry.getValue(), useChosenTime);
         }
         returnedIdsMap.clear();

@@ -38,6 +38,7 @@ fi
 for ip in ${ips[@]}; do
     (ssh -t -t -o StrictHostKeyChecking=no ${usr_name}@$ip "\
 ${cops_dir}/kill_all_cassandra.bash;\
+rm -f ${cops_dir}/cops.data 2>/dev/null;\
 rm ${cops_dir}/*hprof 2> /dev/null;\
 rm ${var_dir}/cassandra*log 2> /dev/null;\
 rm ${var_dir}/cassandra*log* 2> /dev/null;\

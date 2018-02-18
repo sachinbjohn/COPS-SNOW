@@ -130,6 +130,7 @@ public class Session implements Serializable
         availableOptions.addOption("",  "server-index",         true,   "Index of the server (out of num-servers) to load for DYNAMIC_ONE_SERVER");
         availableOptions.addOption("", "useZipfian", true, "this stress run uses zipfian workload or not");
 	    availableOptions.addOption("", "zipfian-constant", true, "Set the zipfian constant for Zipfian distribution");
+	    availableOptions.addOption("", "use-per-node-zipf", false, "Generates key with independent zipf for each node");
 
 	    availableOptions.addOption("", "expt-duration", true, "Set the maximum running time for experiment");
 
@@ -214,6 +215,7 @@ public class Session implements Serializable
 
     // RO6: flag for zipfian
     private int useZipfian = 0;
+    public boolean globalZipf = true;
     // Khiem
     // RO6: zipfian constant
     // defines the skewness: the smaller the value is, the more skewness
@@ -536,12 +538,14 @@ public class Session implements Serializable
             if (cmd.hasOption("useZipfian")) {
                 useZipfian = Integer.parseInt(cmd.getOptionValue("useZipfian"));
             }
-	    if (cmd.hasOption("zipfian-constant")) {
-		zipfianConstant = Double.parseDouble(cmd.getOptionValue("zipfian-constant"));
-		if (zipfianConstant < 0 || zipfianConstant >= 1) {
-		    throw new RuntimeException("Invalid --zipfian-constant");
-		}
-	    }
+            if (cmd.hasOption("use-per-node-zipf"))
+                globalZipf = false;
+            if (cmd.hasOption("zipfian-constant")) {
+                zipfianConstant = Double.parseDouble(cmd.getOptionValue("zipfian-constant"));
+                if (zipfianConstant < 0 || zipfianConstant >= 1) {
+                    throw new RuntimeException("Invalid --zipfian-constant");
+                }
+            }
 
         }
         catch (ParseException e)
@@ -566,7 +570,7 @@ public class Session implements Serializable
                     throw new RuntimeException("Dynamic One Server requires num-servers, and server-index");
                 }
                 //DYNAMIC_ONE_SERVER should get a numDifferentKeys==totalKeys written in the system, just like normal dynamic...
-                dynamicOneServerGenerateKeysForEachServer(num_servers, numDifferentKeys);
+                dynamicOneServerGenerateKeysForEachServer(numDifferentKeys);
             }
         }
 
@@ -585,7 +589,8 @@ public class Session implements Serializable
             numDifferentKeys = keys_per_server * num_servers;
             servers_per_txn = keys_per_read;
             assert servers_per_txn <= num_servers;
-            dynamicOneServerGenerateKeysForEachServer(num_servers, numDifferentKeys);
+            if(!globalZipf)
+                dynamicOneServerGenerateKeysForEachServer(numDifferentKeys);
         }
         for (String node : nodes) {
             localServerIPAndPorts.put(node, port);
@@ -965,10 +970,19 @@ public class Session implements Serializable
         } while (!allServersFull);
     }
 
-    private void dynamicOneServerGenerateKeysForEachServer(int numServers, int numPopulatedKeys)
+
+    public int getServerForKey(ByteBuffer key) {
+        double hashedKey = FBUtilities.hashToBigInteger(key).doubleValue();
+        //Cassandra's keyspace is [0, 2**127)
+        double keyrangeSize = Math.pow(2, 127) / num_servers;
+        int serverIndex = (int) (hashedKey / keyrangeSize);
+        return serverIndex;
+    }
+
+    private void dynamicOneServerGenerateKeysForEachServer(int numPopulatedKeys)
     {
-        generatedKeysByServer = new ArrayList<ArrayList<ByteBuffer>>(numServers);
-        for (int i = 0; i < numServers; i++)
+        generatedKeysByServer = new ArrayList<ArrayList<ByteBuffer>>(num_servers);
+        for (int i = 0; i < num_servers; i++)
         {
             generatedKeysByServer.add(new ArrayList<ByteBuffer>());
         }
@@ -980,11 +994,7 @@ public class Session implements Serializable
         {
             String keyStr = String.format("%0" + (getTotalKeysLength()) + "d", keyI);
             ByteBuffer key = ByteBuffer.wrap(keyStr.getBytes(UTF_8));
-            double hashedKey = FBUtilities.hashToBigInteger(key).doubleValue();
-
-            //Cassandra's keyspace is [0, 2**127)
-            double keyrangeSize = Math.pow(2, 127) / numServers;
-            int serverIndex = (int) (hashedKey / keyrangeSize);
+            int serverIndex = getServerForKey(key);
             generatedKeysByServer.get(serverIndex).add(key);
         }
     }

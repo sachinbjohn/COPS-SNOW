@@ -80,6 +80,7 @@ public class StorageProxy implements StorageProxyMBean
 
     public static final AtomicInteger numServersContacted = new AtomicInteger();
     public static final AtomicInteger numBatches = new AtomicInteger();
+    public static final AtomicInteger numWrites = new AtomicInteger();
     public static final AtomicInteger sizeMsgRecvd = new AtomicInteger();
     public static final AtomicInteger numUniqIds = new AtomicInteger();
 
@@ -103,14 +104,16 @@ public class StorageProxy implements StorageProxyMBean
     private StorageProxy() {}
 
     public static String getStats() {
-        int numW = numBatches.get();
+        int numW = numWrites.get();
+        int numB = numBatches.get();
         int numMsg = numServersContacted.get();
         int totIds = sizeMsgRecvd.get();
         int uniqIds = numUniqIds.get();
         float avgMsgW = numMsg / (1.0f * numW);
         float avgIdMsg = totIds / (1.0f * numMsg);
         float avgIdW = totIds / (1.0f * numW);
-        return String.format("PutStats, %d, %d, %d, %d, %f, %f, %f%n",numW, numMsg, totIds, uniqIds, avgMsgW, avgIdMsg, avgIdW);
+        float avgUIdW = uniqIds / (1.0f * numW);
+        return String.format("PutStats, %d, %d, %d, %d, %d, %f, %f, %f, %f%n", numB, numW, numMsg, totIds, uniqIds, avgMsgW, avgIdMsg, avgIdW, avgUIdW);
     }
 
     static

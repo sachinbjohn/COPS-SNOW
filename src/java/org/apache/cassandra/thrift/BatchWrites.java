@@ -72,6 +72,7 @@ public class BatchWrites {
         ConcurrentHashMap<InetAddress, Set<ByteBuffer>> GroupedKeys = new ConcurrentHashMap<InetAddress, Set<ByteBuffer>>();
         Map<ByteBuffer, HashSet<ByteBuffer>> mutationMap = new HashMap<ByteBuffer, HashSet<ByteBuffer>>();
         StorageProxy.numBatches.getAndIncrement();
+        StorageProxy.numWrites.getAndAdd(rowMutations.size());
         for (Pair<RowMutation, IWriteResponseHandler> mutation_pair : rowMutations) {
             RowMutation mutation = mutation_pair.left;
             if (mutation.getDependencies().size() > 0) {
@@ -94,9 +95,10 @@ public class BatchWrites {
         }
         StorageProxy.numServersContacted.getAndAdd(GroupedKeys.size());
         // now groupedKeys has all keys of an entire batchmutate grouped into each endpoint
-        // send out fetchtxnid message
+        // send out fetchtxnid
+        HashMap<ByteBuffer, Set<Long>> uniqIds = new HashMap<>();
         assert GroupedKeys.size() > 0 : "No dependencies; this condition should be filtered out earlier in StorageProxy";
-        FetchTxnIdsCallBack fetchIdCallback = new FetchTxnIdsCallBack(new FetchIdCompletion(rowMutations), mutationMap, chosenTime, GroupedKeys.size());
+        FetchTxnIdsCallBack fetchIdCallback = new FetchTxnIdsCallBack(new FetchIdCompletion(rowMutations, uniqIds), mutationMap, chosenTime, GroupedKeys.size(), uniqIds);
         for (InetAddress ep : GroupedKeys.keySet()) {
             MessagingService.instance().sendRR(new FetchTxnIds(GroupedKeys.get(ep)), ep, fetchIdCallback);
         }

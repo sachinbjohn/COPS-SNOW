@@ -12,7 +12,7 @@ import org.apache.cassandra.utils.FBUtilities;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.*;
-
+import static com.google.common.base.Charsets.UTF_8;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class Experiment10 extends Operation {
@@ -25,26 +25,35 @@ public class Experiment10 extends Operation {
             int numKeys = session.getNumDifferentKeys();
             int numServ = session.getNum_servers();
             int keyPerServ = numKeys / numServ;
-            zipfGen = new ZipfianGenerator(keyPerServ, session.getZipfianConstant());
+            int zipfRange = session.globalZipf ? numKeys : keyPerServ;
+            zipfGen = new ZipfianGenerator(zipfRange, session.getZipfianConstant());
         }
     }
 
     private List<ByteBuffer> generateReadTxnKeys(int numTotalServers, int numInvolvedServers, int keysPerServer) {
         List<ByteBuffer> keys = new ArrayList<ByteBuffer>();
 
-        List<Integer> allServerIndices = new ArrayList<Integer>(numTotalServers);
-        for (int i = 0; i < numTotalServers; i++) {
-            allServerIndices.add(i);
-        }
-
-        int srvIndex = Stress.randomizer.nextInt(numTotalServers);
-
-        // choose K keys for each server
-        for (int i = 0; i < numInvolvedServers; i++) {
-            for (int k = 0; k < keysPerServer; k++) {
-                keys.add(getZipfGeneratedKey(srvIndex));
+        if(!session.globalZipf) {
+            int srvIndex = Stress.randomizer.nextInt(numTotalServers);
+            // choose K keys for each server
+            for (int i = 0; i < numInvolvedServers; i++) {
+                for (int k = 0; k < keysPerServer; k++) {
+                    keys.add(getZipfGeneratedKey(srvIndex));
+                }
+                srvIndex = (srvIndex + 1) % numTotalServers;
             }
-            srvIndex = (srvIndex + 1) % numTotalServers;
+        } else {
+            HashSet<Integer> involvedServers = new HashSet<>();
+            while (involvedServers.size() < numInvolvedServers) {
+                int keyI = zipfGen.nextInt();
+                String keyStr = String.format("%0" + (session.getTotalKeysLength()) + "d", keyI);
+                ByteBuffer key = ByteBuffer.wrap(keyStr.getBytes(UTF_8));
+                int serverIndex = session.getServerForKey(key);
+                if (!involvedServers.contains(serverIndex)) {
+                    keys.add(key);
+                    involvedServers.add(serverIndex);
+                }
+            }
         }
 
         return keys;
@@ -60,7 +69,6 @@ public class Experiment10 extends Operation {
 
 
     private  ByteBuffer getZipfGeneratedKey(int srvIndex) {
-
         int index = zipfGen.nextInt();
         ArrayList<ByteBuffer> list = session.generatedKeysByServer.get(srvIndex);
         if (index >= list.size())
@@ -96,7 +104,6 @@ public class Experiment10 extends Operation {
                 ByteBufferUtil.EMPTY_BYTE_BUFFER,
                 false, 1));
 
-        int pId = Stress.randomizer.nextInt(totalServers);
 
         List<ByteBuffer> keys = generateReadTxnKeys(totalServers, involvedServers, 1);
         ColumnParent parent = new ColumnParent("Standard1");

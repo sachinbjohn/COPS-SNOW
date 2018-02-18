@@ -6,19 +6,26 @@ import org.apache.cassandra.service.StorageProxy;
 import org.apache.cassandra.utils.Pair;
 
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by yangyang333 on 15-7-9.
  */
 public class FetchIdCompletion implements ICompletable {
     private final List<Pair<RowMutation, IWriteResponseHandler>> rowMutations;
-
-    public FetchIdCompletion(List<Pair<RowMutation, IWriteResponseHandler>> rms) {
+    private final HashMap<ByteBuffer, Set<Long>> uniqIds;
+    public FetchIdCompletion(List<Pair<RowMutation, IWriteResponseHandler>> rms, HashMap<ByteBuffer, Set<Long>> uniqIds) {
         this.rowMutations = rms;
+        this.uniqIds = uniqIds;
     }
     @Override
     public void complete() {
+        for(Set<Long> sets : uniqIds.values())
+            StorageProxy.numUniqIds.getAndAdd(sets.size());
         for (Pair<RowMutation, IWriteResponseHandler> rm : rowMutations) {
             StorageProxy.insertLocal(rm.left, rm.right);
         }
