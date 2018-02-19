@@ -68,12 +68,13 @@ public class BatchWrites {
     }
 
     public void fetchTxnIds(List<Pair<RowMutation, IWriteResponseHandler>> rowMutations, long chosenTime) {
-        HashSet<ByteBuffer> keySet = new HashSet<ByteBuffer>();
+
         ConcurrentHashMap<InetAddress, Set<ByteBuffer>> GroupedKeys = new ConcurrentHashMap<InetAddress, Set<ByteBuffer>>();
         Map<ByteBuffer, HashSet<ByteBuffer>> mutationMap = new HashMap<ByteBuffer, HashSet<ByteBuffer>>();
         StorageProxy.numBatches.getAndIncrement();
         StorageProxy.numWrites.getAndAdd(rowMutations.size());
         for (Pair<RowMutation, IWriteResponseHandler> mutation_pair : rowMutations) {
+            HashSet<ByteBuffer> keySet = new HashSet<ByteBuffer>();
             RowMutation mutation = mutation_pair.left;
             if (mutation.getDependencies().size() > 0) {
                 for (Dependency dep : mutation.getDependencies()) {
