@@ -90,7 +90,7 @@ public class BatchWrites {
                     }
                 }
                 mutationMap.put(mutation.key(), keySet);
-                keySet.clear();
+                // keySet.clear();
             }
         }
         StorageProxy.numServersContacted.getAndAdd(GroupedKeys.size());
