@@ -68,7 +68,8 @@ public class Experiment10 extends Operation {
     }
 
 
-    private  ByteBuffer getZipfGeneratedKey(int srvIndex) {
+    private ByteBuffer getZipfGeneratedKey(int srvIndex) {
+
         int index = zipfGen.nextInt();
         ArrayList<ByteBuffer> list = session.generatedKeysByServer.get(srvIndex);
         if (index >= list.size())
@@ -85,7 +86,7 @@ public class Experiment10 extends Operation {
     @Override
     public void run(ClientLibrary clientLibrary) throws IOException {
         //do all random tosses here
-        while(zipfGen == null); // wait until initialization is over
+        while (zipfGen == null) ; // wait until initialization is over
         double target_p_w = session.getWrite_fraction();
         int partitionsToReadFrom = session.getKeys_per_read();
         assert partitionsToReadFrom <= session.getNum_servers();
@@ -172,7 +173,13 @@ public class Experiment10 extends Operation {
 
         int srvID = Stress.randomizer.nextInt(totalServers);
 
-        ByteBuffer key = getZipfGeneratedKey(srvID);
+        ByteBuffer key;
+        if (session.globalZipf) {
+            int keyI = zipfGen.nextInt();
+            String keyStr = String.format("%0" + (session.getTotalKeysLength()) + "d", keyI);
+            key = ByteBuffer.wrap(keyStr.getBytes(UTF_8));
+        } else
+            key = getZipfGeneratedKey(srvID);
         record.put(key, getColumnMutationMap(column));
 
         long startNano = System.nanoTime();
