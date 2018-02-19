@@ -59,9 +59,9 @@ public class ReadTransactionIdTracker {
             //the locator_key is even not touched by other read txns yet
             ConcurrentHashMap<Long, ArrayList<Long>> txnEntry = new ConcurrentHashMap<Long, ArrayList<Long>>();
             txnEntry.put(transactionId, timesEntry);
-            keyToReadTxnIds.put(locatorKey, txnEntry);
-//            logger.trace("KeyRead "+ByteBufferUtil.bytesToHex(locatorKey));
             keyToLastAccessedTime.put(locatorKey, System.currentTimeMillis());
+            keyToReadTxnIds.put(locatorKey, txnEntry);
+            //            logger.trace("KeyRead "+ByteBufferUtil.bytesToHex(locatorKey));
 //            txnEntry.clear();
 //            txnEntry = null;
         }

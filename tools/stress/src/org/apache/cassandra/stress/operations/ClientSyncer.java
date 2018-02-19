@@ -20,8 +20,9 @@ import org.slf4j.LoggerFactory;
 public class ClientSyncer extends Operation {
     private static Logger logger = LoggerFactory.getLogger(ClientSyncer.class);
     private PrintStream output;
-    public int getKeyForClient(int i) {
-        return session.getNumDifferentKeys() + i + 10;
+
+    public int getKeyForClient(int i, int dc) {
+        return session.getNumDifferentKeys() + i + 10 + 1000 * dc;
     }
     public ClientSyncer(Session client, int idx, PrintStream out) {
         super(client, idx);
@@ -36,7 +37,7 @@ public class ClientSyncer extends Operation {
     @Override
     public void run(ClientLibrary clientLibrary) throws IOException {
         String format = "%0" + session.getTotalKeysLength() + "d";
-        int thisClientKey = getKeyForClient(session.stressIndex);
+        int thisClientKey = getKeyForClient(session.stressIndex, session.dcIndex);
         String rawKey = String.format(format, thisClientKey);
         ByteBuffer key = ByteBufferUtil.bytes(rawKey);
 
@@ -78,14 +79,15 @@ public class ClientSyncer extends Operation {
                     (exceptionMessage == null) ? "" : "(" + exceptionMessage + ")"));
         }
 
-        output.println("Client "+session.stressIndex+ " ready. Written key "+rawKey);
+        output.println("Client "+session.stressIndex+ ":" + session.dcIndex +" ready. Written key "+rawKey);
         //Wait for all clients to start up
         SlicePredicate nColumnsPredicate = new SlicePredicate().setSlice_range(new SliceRange(ByteBufferUtil.EMPTY_BYTE_BUFFER,
                 ByteBufferUtil.EMPTY_BYTE_BUFFER,
                 false, 1));
         ArrayList<ByteBuffer> keys = new ArrayList<>();
-        for(int i = 0; i < session.stressCount; ++i)
-            keys.add(ByteBufferUtil.bytes(String.format(format, getKeyForClient(i))));
+        for (int dc = 0; dc < session.numDCs; ++dc)
+            for (int i = 0; i < session.stressCount; ++i)
+                keys.add(ByteBufferUtil.bytes(String.format(format, getKeyForClient(i, dc))));
 
         ColumnParent parent = new ColumnParent("Standard1");
         int columnCount = 0;
