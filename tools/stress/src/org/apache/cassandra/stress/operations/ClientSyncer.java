@@ -109,7 +109,7 @@ public class ClientSyncer extends Operation {
                     if(size == 0)
                         missingKeys += ByteBufferUtil.string(kvs.getKey()) + " ";
                 }
-                success = (columnCount == session.stressCount);
+                success = (columnCount == session.stressCount * session.numDCs);
                 output.println("Number of clients ready = "+columnCount+"  Missing ="+missingKeys);
                 if (success)
                     break;

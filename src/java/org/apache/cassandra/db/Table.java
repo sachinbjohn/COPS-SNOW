@@ -417,6 +417,18 @@ public class Table
                 SortedSet<ByteBuffer> mutatedIndexedColumns = null;
                 if (updateIndexes)
                 {
+                    StringBuilder colNames = new StringBuilder();
+                    StringBuilder idxNames = new StringBuilder();
+                    try {
+                        for (ByteBuffer col : cf.getColumnNames()) {
+                            colNames.append(ByteBufferUtil.string(col));
+                        }
+                        for(ByteBuffer idx : cfs.indexManager.getIndexedColumns()) {
+                            idxNames.append(ByteBufferUtil.string(idx));
+                        }
+                    } catch (Exception ex) {
+                    }
+                    logger.error("CF column names = {}, IndexedColumns = {}", new Object[]{colNames.toString(), idxNames.toString()});
                     for (ByteBuffer column : cfs.indexManager.getIndexedColumns())
                     {
                         if (cf.getColumnNames().contains(column) || cf.isMarkedForDelete())
