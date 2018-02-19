@@ -77,12 +77,12 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
         if (chosenTime == 0) {
             useChosenTime = 1L;
         }
-        StringBuilder str = new StringBuilder();
-        str.append("Mutation = { ");
-        for (Map.Entry<ByteBuffer, HashSet<ByteBuffer>> entry : mutationMap.entrySet()) {
-            str.append("\n    "+ByteBufferUtil.string(entry.getKey()) + "->" +entry.getValue().toString());
-        }
-        str.append("\n }");
+        // StringBuilder str = new StringBuilder();
+        // str.append("Mutation = { ");
+        // for (Map.Entry<ByteBuffer, HashSet<ByteBuffer>> entry : mutationMap.entrySet()) {
+        //     str.append("\n    "+ByteBufferUtil.string(entry.getKey()) + "->" +entry.getValue().toString());
+        // }
+        // str.append("\n }");
         Map<ByteBuffer, ArrayList<Long>> returnedIdsMap = new HashMap<ByteBuffer, ArrayList<Long>>();
         for (int i = 0; i < numKeys; ++i) {
             int blockSize = inputStream.readInt();
@@ -92,7 +92,7 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
                 long txnId = inputStream.readLong();
                 idList.add(txnId);
             }
-            str.append(ByteBufferUtil.string(depKey)+"::"+idList.size()+",  ");
+            // str.append(ByteBufferUtil.string(depKey)+"::"+idList.size()+",  ");
             StorageProxy.sizeMsgRecvd.getAndAdd(idList.size());
             for (Map.Entry<ByteBuffer, HashSet<ByteBuffer>> entry : mutationMap.entrySet()) {
                 ByteBuffer locatorKey = entry.getKey();
@@ -120,11 +120,11 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
             synchronized(idset) {
                 idset.addAll(entry.getValue());
             }
-            str.append("\n  "+ByteBufferUtil.string(entry.getKey()) +" -> " + idset.size());
+            // str.append("\n  "+ByteBufferUtil.string(entry.getKey()) +" -> " + idset.size());
             ReadTransactionIdTracker.checkIfTxnIdBeenRecorded(entry.getKey(), entry.getValue(), useChosenTime);
         }
-        str.append("END");
-        logger_.error(str.toString());
+        // str.append("END");
+        // logger_.error(str.toString());
         returnedIdsMap.clear();
         returnedIdsMap = null;
     }
