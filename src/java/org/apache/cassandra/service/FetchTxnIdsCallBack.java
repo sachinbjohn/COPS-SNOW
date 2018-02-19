@@ -97,7 +97,7 @@ public class FetchTxnIdsCallBack implements IAsyncCallback {
                     }
                 }
             }
-            idList.clear();
+            //idList.clear();
         }
         for (Map.Entry<ByteBuffer, ArrayList<Long>> entry : returnedIdsMap.entrySet()) {
             Set<Long> idset;
