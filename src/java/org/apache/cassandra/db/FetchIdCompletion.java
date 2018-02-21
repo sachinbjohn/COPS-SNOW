@@ -7,10 +7,7 @@ import org.apache.cassandra.utils.Pair;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by yangyang333 on 15-7-9.
@@ -24,8 +21,16 @@ public class FetchIdCompletion implements ICompletable {
     }
     @Override
     public void complete() {
-        for(Set<Long> sets : uniqIds.values())
+        for(Set<Long> sets : uniqIds.values()) {
             StorageProxy.numUniqIds.getAndAdd(sets.size());
+            HashSet<Long> clients = new HashSet<>();
+            for(Long id : sets) {
+                Long clAdd= id % (1 << 16);
+                clients.add(clAdd);
+            }
+
+        }
+
         for (Pair<RowMutation, IWriteResponseHandler> rm : rowMutations) {
             StorageProxy.insertLocal(rm.left, rm.right);
         }

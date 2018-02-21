@@ -83,6 +83,7 @@ public class StorageProxy implements StorageProxyMBean
     public static final AtomicInteger numWrites = new AtomicInteger();
     public static final AtomicInteger sizeMsgRecvd = new AtomicInteger();
     public static final AtomicInteger numUniqIds = new AtomicInteger();
+    public static final AtomicInteger numUniqClients = new AtomicInteger();
 
     private static volatile boolean hintedHandoffEnabled = DatabaseDescriptor.hintedHandoffEnabled();
     private static volatile int maxHintWindow = DatabaseDescriptor.getMaxHintWindow();
@@ -109,11 +110,13 @@ public class StorageProxy implements StorageProxyMBean
         int numMsg = numServersContacted.get();
         int totIds = sizeMsgRecvd.get();
         int uniqIds = numUniqIds.get();
+        int numCl = numUniqClients.get();
         float avgMsgW = numMsg / (1.0f * numW);
         float avgIdMsg = totIds / (1.0f * numMsg);
         float avgIdW = totIds / (1.0f * numW);
         float avgUIdW = uniqIds / (1.0f * numW);
-        return String.format("PutStats, %d, %d, %d, %d, %d, %f, %f, %f, %f%n", numB, numW, numMsg, totIds, uniqIds, avgMsgW, avgIdMsg, avgIdW, avgUIdW);
+        float avgNumCl = numCl / (1.0f * numW);
+        return String.format("PutStats, %d, %d, %d, %d, %d, %d, %f, %f, %f, %f, %f%n", numB, numW, numMsg, totIds, uniqIds, numCl, avgMsgW, avgIdMsg, avgIdW, avgUIdW, avgNumCl);
     }
 
     static
