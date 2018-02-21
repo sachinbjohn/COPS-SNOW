@@ -28,7 +28,7 @@ public class FetchIdCompletion implements ICompletable {
                 Long clAdd= id % (1 << 16);
                 clients.add(clAdd);
             }
-
+            StorageProxy.numUniqClients.getAndAdd(clients.size());
         }
 
         for (Pair<RowMutation, IWriteResponseHandler> rm : rowMutations) {

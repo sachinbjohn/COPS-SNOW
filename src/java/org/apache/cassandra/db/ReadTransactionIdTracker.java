@@ -48,7 +48,7 @@ public class ReadTransactionIdTracker {
         Long transactionId = new Long(txnId);
         long txnTimeToReturn = 0;
         //recordTime is real time for garbage collection
-        Long recordTime = new Long(System.currentTimeMillis() * 1000);
+        Long recordTime = new Long(System.currentTimeMillis() + 5000);
         Long txnTime = !forWrites ? new Long(0) : chosenTime;  // a place holder, txnTime should be filled in by writes after done dep_check
         //prepare time entry for this transaction. A time entry has transaction's effective time and record time
         ArrayList<Long> timesEntry = new ArrayList<Long>();
