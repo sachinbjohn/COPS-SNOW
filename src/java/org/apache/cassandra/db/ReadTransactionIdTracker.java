@@ -28,6 +28,7 @@ public class ReadTransactionIdTracker {
      * We do garbage collection everytime we have a dep_check (seems reasonable)
      */
     static ConcurrentHashMap<ByteBuffer, ConcurrentHashMap<Long, ArrayList<Long>>> keyToReadTxnIds = new ConcurrentHashMap<ByteBuffer, ConcurrentHashMap<Long, ArrayList<Long>>>(100000);
+    static ConcurrentHashMap<Long, Long> clientToMaxTxnId = new ConcurrentHashMap<>(2048);
     // Used to store last accessed time for each key. The first ROT set the access time for an empty
     // key entry, then after that only write's dep_check updates last accessed time. If a key' accessed time longer then
     // 5 seconds, Then a read will also trigger garbage collection.
@@ -46,6 +47,9 @@ public class ReadTransactionIdTracker {
     public static long checkIfTxnIdBeenRecorded(ByteBuffer locatorKey, long txnId, boolean forWrites, long chosenTime)
     {
         Long transactionId = new Long(txnId);
+        long txnId_clientId = LamportClock.extractClientId(txnId);
+        if(!clientToMaxTxnId.contains(txnId_clientId) || txnId > clientToMaxTxnId.get(txnId_clientId))
+            clientToMaxTxnId.put(txnId, txnId_clientId);
         long txnTimeToReturn = 0;
         //recordTime is real time for garbage collection
         Long recordTime = new Long(System.currentTimeMillis());
@@ -70,8 +74,11 @@ public class ReadTransactionIdTracker {
             // this key has not been checked by dep_check for a while, we need to explicitly do garbage collection
             if (keyToLastAccessedTime.get(locatorKey) < safetyTime) {
                 for (Entry<Long, ArrayList<Long>> entry : keyToReadTxnIds.get(locatorKey).entrySet()) {
-                    if (entry.getValue().get(1) < safetyTime) {
-                        keyToReadTxnIds.get(locatorKey).remove(entry.getKey());
+                    Long oldId = entry.getKey();
+                    Long oldId_client = LamportClock.extractClientId(oldId);
+                    //SBJ: No need to maintain older transaction when newer transaction from same client exists
+                    if (entry.getValue().get(1) < safetyTime || (clientToMaxTxnId.get(oldId_client) > oldId)) {
+                        keyToReadTxnIds.get(locatorKey).remove(oldId);
                     }
                 }
                 keyToLastAccessedTime.put(locatorKey, System.currentTimeMillis());
@@ -110,10 +117,13 @@ public class ReadTransactionIdTracker {
             return returnedIdList;
         for (Entry<Long, ArrayList<Long>> entry : keyToReadTxnIds.get(locatorKey).entrySet()) {
             long safeTime = System.currentTimeMillis() - SAFTYTIMER;
-            if (entry.getValue().get(1) >= safeTime) {
-                returnedIdList.add(entry.getKey());
+            Long oldId = entry.getKey();
+            Long oldId_client = LamportClock.extractClientId(oldId);
+            //SBJ: Only adding latest transaction from each client
+            if (entry.getValue().get(1) >= safeTime && clientToMaxTxnId.get(oldId_client).equals(oldId)) {
+                returnedIdList.add(oldId);
             } else {
-                keyToReadTxnIds.get(locatorKey).remove(entry.getKey());
+                keyToReadTxnIds.get(locatorKey).remove(oldId);
             }
         }
         keyToLastAccessedTime.put(locatorKey, System.currentTimeMillis());

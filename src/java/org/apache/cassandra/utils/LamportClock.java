@@ -1,5 +1,6 @@
 package org.apache.cassandra.utils;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.net.InetAddress;
 
@@ -85,18 +86,32 @@ public class LamportClock {
         if (ipStr.indexOf('.') < 0) {
             return 0L;
         }
-        String ip = "";
-        int index = 0;
-        for (String str : ipStr.split("\\.")) {
-            // we only use the last 16 bits of ip to identify each node
-            if (++index <= 2)
-                continue;
-            ip = ip + str;
-        }
-        return Long.parseLong(ip);
-
+        String[] strs = ipStr.split("\\.");
+        //Using last 10 bits of ip address and 6 bits of thread. MAX of 64 threads per node
+        long l10bits = (((Integer.parseInt(strs[2])%4) << 8 ) + Integer.parseInt(strs[3]));
+        long uniqid = (l10bits << 6) + getThreadId();
+        return uniqid;
     }
 
+    // Atomic integer containing the next thread ID to be assigned
+    private static final AtomicInteger nextId = new AtomicInteger(0);
+
+    // Thread local variable containing each thread's ID
+    private static final ThreadLocal<Integer> threadId =
+            new ThreadLocal<Integer>() {
+                @Override protected Integer initialValue() {
+                    return nextId.getAndIncrement();
+                }
+            };
+
+    // Returns the current thread's unique ID, assigning it if necessary
+    public static int getThreadId() {
+        return threadId.get();
+    }
+
+    public static long extractClientId(long txnid) {
+        return txnid & ((1<<16)-1);
+    }
     public static long sendTranId() throws Exception {
         long localTime = logicalTime.incrementAndGet();
         long tranId = (localTime << 16) + parseToLong(InetAddress.getLocalHost().getHostAddress());

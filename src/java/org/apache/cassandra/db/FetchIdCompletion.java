@@ -3,6 +3,7 @@ package org.apache.cassandra.db;
 import org.apache.cassandra.net.ICompletable;
 import org.apache.cassandra.service.IWriteResponseHandler;
 import org.apache.cassandra.service.StorageProxy;
+import org.apache.cassandra.utils.LamportClock;
 import org.apache.cassandra.utils.Pair;
 
 import java.lang.reflect.Method;
@@ -25,8 +26,8 @@ public class FetchIdCompletion implements ICompletable {
             StorageProxy.numUniqIds.getAndAdd(sets.size());
             HashSet<Long> clients = new HashSet<>();
             for(Long id : sets) {
-                Long clAdd= id % (1 << 16);
-                clients.add(clAdd);
+                Long clientId= LamportClock.extractClientId(id);
+                clients.add(clientId);
             }
             StorageProxy.numUniqClients.getAndAdd(clients.size());
         }
