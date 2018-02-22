@@ -49,7 +49,7 @@ public class ReadTransactionIdTracker {
         Long transactionId = new Long(txnId);
         long txnId_clientId = LamportClock.extractClientId(txnId);
         if(!clientToMaxTxnId.contains(txnId_clientId) || txnId > clientToMaxTxnId.get(txnId_clientId))
-            clientToMaxTxnId.put(txnId, txnId_clientId);
+            clientToMaxTxnId.put(txnId_clientId, txnId);
         long txnTimeToReturn = 0;
         //recordTime is real time for garbage collection
         Long recordTime = new Long(System.currentTimeMillis());
