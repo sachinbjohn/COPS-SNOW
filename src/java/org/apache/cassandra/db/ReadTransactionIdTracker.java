@@ -73,20 +73,20 @@ public class ReadTransactionIdTracker {
             long safetyTime = System.currentTimeMillis() - SAFTYTIMER;
             // this key has not been checked by dep_check for a while, we need to explicitly do garbage collection
             if (keyToLastAccessedTime.get(locatorKey) < safetyTime) {
-                for (Entry<Long, ArrayList<Long>> entry : keyToReadTxnIds.get(locatorKey).entrySet()) {
+                for (Entry<Long, ArrayList<Long>> entry : txnIdList.entrySet()) {
                     Long oldId = entry.getKey();
                     Long oldId_client = LamportClock.extractClientId(oldId);
                     //SBJ: No need to maintain older transaction when newer transaction from same client exists
                     if (entry.getValue().get(1) < safetyTime || (clientToMaxTxnId.get(oldId_client) > oldId)) {
-                        keyToReadTxnIds.get(locatorKey).remove(oldId);
+                        txnIdList.remove(oldId);
                     }
                 }
                 keyToLastAccessedTime.put(locatorKey, System.currentTimeMillis());
             }
-            ArrayList<Long> findTxnId = txnIdList.get(txnId);
+            ArrayList<Long> findTxnId = txnIdList.get(transactionId);
             if (findTxnId == null) {
                 // locator_key exists but this txnId is not in the record
-                keyToReadTxnIds.get(locatorKey).put(transactionId, timesEntry);
+                txnIdList.put(transactionId, timesEntry);
             } else {
                 // if we did find this txnId recorded before, then we return its effective time
 
@@ -96,7 +96,10 @@ public class ReadTransactionIdTracker {
                 txnTimeToReturn = findTxnId.get(0);
                 if (forWrites) {
                     if (txnTimeToReturn > txnTime ) {
-                        keyToReadTxnIds.get(locatorKey).get(transactionId).set(0, txnTime); //update txnTime
+                        //SBJ: Causes NullPointerException possibly because another thread removed the transactionId  because of safety timen
+                        // keyToReadTxnIds.get(locatorKey).get(transactionId).set(0, txnTime); //update txnTime
+                        //Avoids NullPointer Exception, but if another thread removed txnid, this update is meaningless.
+                        findTxnId.set(0, txnTime); //update txnTime
                     }
                 }
 //                findTxnId.clear();

@@ -279,9 +279,11 @@ public class Column implements IColumn
          * + 1 int + if set (transactionCoordinatorKey length + 1) for transactionCoordinatorKey
         */
         int size = DBConstants.shortSize + name.remaining() + 1 + DBConstants.tsSize + DBConstants.intSize + value.remaining() + 4*DBConstants.longSize + DBConstants.intSize;
-        if (previousVersions != null) {
-            for (IColumn previousVersion : previousVersions) {
-                size += previousVersion.serializedSize();
+        synchronized (this) {
+            if (previousVersions != null) {
+                for (IColumn previousVersion : previousVersions) {
+                    size += previousVersion.serializedSize();
+                }
             }
         }
         size += DBConstants.intSize + ((transactionCoordinatorKey == null) ? 0 : DBConstants.intSize + transactionCoordinatorKey.remaining());
@@ -574,7 +576,9 @@ prevVersion = null;
     @Override
     public IColumn localCopy(ColumnFamilyStore cfs, Allocator allocator)
     {
-        return new Column(cfs.internOrCopy(name, allocator), allocator.clone(value), timestamp, lastAccessTime, lastAccessTimeOfAPreviousVersion, earliestValidTime, latestValidTime, previousVersions, transactionCoordinatorKey);
+        synchronized (this) {
+            return new Column(cfs.internOrCopy(name, allocator), allocator.clone(value), timestamp, lastAccessTime, lastAccessTimeOfAPreviousVersion, earliestValidTime, latestValidTime, previousVersions, transactionCoordinatorKey);
+        }
     }
 
     @Override
