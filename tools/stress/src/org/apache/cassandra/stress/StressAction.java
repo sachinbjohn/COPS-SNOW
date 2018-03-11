@@ -306,6 +306,7 @@ public class StressAction extends Thread
         //Expt,Key/Serv,#Serv,ValSize,Key/Read,WriteFrac,Zipf,Threads,Client
         ArrayList<String> outputs = new ArrayList<>();
         outputs.add("COPS-SNOW");
+        outputs.add(String.valueOf(client.numDCs));
         outputs.add(String.valueOf(client.getKeys_per_server()));
         outputs.add(String.valueOf(client.getNum_servers()));
         outputs.add(String.valueOf(client.getColumnSize()));
