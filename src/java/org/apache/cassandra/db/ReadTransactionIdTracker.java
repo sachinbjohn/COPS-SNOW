@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class ReadTransactionIdTracker {
-    public static final long SAFTYTIMER = 50;    // used for garbage collection of old versions, 5 seconds
+    public static final long SAFTYTIMER = 50;    // used for garbage collection of old versions, 50 milliseconds
     /**
      * keyToReadTxnIds contains all read transactions just partly happened on this node
      * It is a map of <locator_key, map<transaction_id, ArrayList<txnTime, record_time>>>.

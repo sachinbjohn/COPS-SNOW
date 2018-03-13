@@ -19,7 +19,7 @@ import java.util.concurrent.*;
  * Created by yangyang333 on 16-4-24.
  */
 public class BatchWrites {
-    private int BATCH_INTERVAL_IN_MS = 100;
+    private int BATCH_INTERVAL_IN_MS = 1;
     private static final int MAX_BATCH_WRITE_QUEUE_SIZE = 1000;
     private static Logger logger = LoggerFactory.getLogger(BatchWrites.class);
     private static BlockingQueue<Pair<Pair<RowMutation, IWriteResponseHandler>, Long>> batchedWritesQueue = new LinkedBlockingDeque<Pair<Pair<RowMutation, IWriteResponseHandler>, Long>>(MAX_BATCH_WRITE_QUEUE_SIZE);
