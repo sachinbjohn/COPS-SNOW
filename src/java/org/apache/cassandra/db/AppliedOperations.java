@@ -186,8 +186,7 @@ public class AppliedOperations
         }
     }
 
-    public static synchronized void checkDependency(DependencyCheck depCheck, Message depCheckMessage, String id)
-    {
+    public static synchronized void checkDependency(DependencyCheck depCheck, Message depCheckMessage, String id) {
         // now depcheck has a list of dependencies to check, we iterate through them
         for (Dependency dep : depCheck.getDependencies()) {
             // Don't check dependencies for values written in this DC, we know they've been applied
@@ -199,24 +198,20 @@ public class AppliedOperations
             if (pendingOps == null || pendingOps.size() == 0) {
                 //no pendingOps => nothing's been received from that node yet
                 blockDepCheck(dep.getTimestamp(), depCheckMessage, id, locatorKey);
-            }
-            else if (pendingOps.get(pendingOps.firstKey()) == OpStatus.PENDING) {
+            } else if (pendingOps.get(pendingOps.firstKey()) == OpStatus.PENDING) {
                 //first op pending => nothing's been applied yet
                 blockDepCheck(dep.getTimestamp(), depCheckMessage, id, locatorKey);
-            }
-            else if (dep.getTimestamp() <= pendingOps.firstKey()) {
+            } else if (dep.getTimestamp() <= pendingOps.firstKey()) {
                 //firstKey and everything older than it have been applied => respond immediately
                 try {
                     sendDepCheckReply(depCheckMessage, id, locatorKey);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-            }
-            else if (dep.getTimestamp() > pendingOps.lastKey()) {
+            } else if (dep.getTimestamp() > pendingOps.lastKey()) {
                 //lastKey is the mostly recently received op from this node => hasn't been applied yet
                 blockDepCheck(dep.getTimestamp(), depCheckMessage, id, locatorKey);
-            }
-            else {
+            } else {
                 OpStatus opStatus = pendingOps.get(dep.getTimestamp());
                 if (opStatus == null || opStatus == OpStatus.PENDING) {
                     blockDepCheck(dep.getTimestamp(), depCheckMessage, id, locatorKey);

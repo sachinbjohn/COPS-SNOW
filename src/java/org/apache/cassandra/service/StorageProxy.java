@@ -1440,8 +1440,7 @@ public class StorageProxy implements StorageProxyMBean
      * @param deps the dependencies we want to check
      * @param completable object with a compete callback to be executed after all dep checks return
      */
-    public static void checkDependencies(String keyspace, ByteBuffer locatorKey, long timestamp, Set<Dependency> deps, ICompletable completable, long chosenTime)
-    {
+    public static void checkDependencies(String keyspace, ByteBuffer locatorKey, long timestamp, Set<Dependency> deps, ICompletable completable, long chosenTime) {
         if (logger.isDebugEnabled())
             logger.debug("Checking deps for " + completable);
 
