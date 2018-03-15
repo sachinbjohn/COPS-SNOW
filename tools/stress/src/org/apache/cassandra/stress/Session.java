@@ -121,13 +121,13 @@ public class Session implements Serializable
         availableOptions.addOption("",  "keys-per-write",             true,   "");
         availableOptions.addOption("",  "write-transaction-fraction", true,   "Fraction of ops to be transactions, 0-1");
 
-        availableOptions.addOption("",  "num-servers",             true,   "The number of servers in each cluster, required for write-txn workload");
+        availableOptions.addOption("",  "num-servers-per-dc",             true,   "The number of servers in each cluster, required for write-txn workload");
         availableOptions.addOption("",  "num-dcs",             true,   "The number of datacenters");
         availableOptions.addOption("",  "dc-index",             true,   "The index of datacenter to which client is connected to");
         availableOptions.addOption("",  "keys-per-server",         true,   "The number of keys to write on each server in a write txn");
         availableOptions.addOption("",  "servers-per-txn",         true,   "The number of servers to include in each write txn");
 
-        availableOptions.addOption("",  "server-index",         true,   "Index of the server (out of num-servers) to load for DYNAMIC_ONE_SERVER");
+        availableOptions.addOption("",  "server-index",         true,   "Index of the server (out of num-servers-per-dc) to load for DYNAMIC_ONE_SERVER");
         availableOptions.addOption("", "useZipfian", true, "this stress run uses zipfian workload or not");
 	    availableOptions.addOption("", "zipfian-constant", true, "Set the zipfian constant for Zipfian distribution");
 	    availableOptions.addOption("", "use-per-node-zipf", false, "Generates key with independent zipf for each node");
@@ -206,7 +206,7 @@ public class Session implements Serializable
     private double write_transaction_fraction = -1;
 
     // for write txn experiment where we want to control the exact number of keys being accessed on each server
-    private int num_servers = 0;
+    private int num_servers_per_dc = 0;
     private int keys_per_server = 0;
     private int servers_per_txn = 0;
 
@@ -505,10 +505,10 @@ public class Session implements Serializable
                     throw new RuntimeException("Invalid --write-transaction-fraction value");
             }
 
-            if (cmd.hasOption("num-servers")) {
-                num_servers = Integer.parseInt(cmd.getOptionValue("num-servers"));
-                if (num_servers <= 0)
-                    throw new RuntimeException("Invalid num-servers value");
+            if (cmd.hasOption("num-servers-per-dc")) {
+                num_servers_per_dc = Integer.parseInt(cmd.getOptionValue("num-servers-per-dc"));
+                if (num_servers_per_dc <= 0)
+                    throw new RuntimeException("Invalid num-servers-per-dc value");
             }
             if(cmd.hasOption("num-dcs")) {
                 numDCs = Byte.parseByte(cmd.getOptionValue("num-dcs"));
@@ -566,8 +566,8 @@ public class Session implements Serializable
             }
 
             if (operation == Stress.Operations.DYNAMIC_ONE_SERVER) {
-                if (num_servers == 0 || server_index == -1) {
-                    throw new RuntimeException("Dynamic One Server requires num-servers, and server-index");
+                if (num_servers_per_dc == 0 || server_index == -1) {
+                    throw new RuntimeException("Dynamic One Server requires num-servers-per-dc, and server-index");
                 }
                 //DYNAMIC_ONE_SERVER should get a numDifferentKeys==totalKeys written in the system, just like normal dynamic...
                 dynamicOneServerGenerateKeysForEachServer(numDifferentKeys);
@@ -575,20 +575,20 @@ public class Session implements Serializable
         }
 
         if (operation == Stress.Operations.WRITE_TXN || operation == Stress.Operations.BATCH_MUTATE) {
-            if (num_servers == 0 || keys_per_server == 0 || servers_per_txn == 0 || numKeys == 0 || columns_per_key_write == 0) {
-                throw new RuntimeException("Write txn required num-servers, keys-per-server, servers-per-txn, columns-per-key-write, num-keys, and num-different-keys options");
+            if (num_servers_per_dc == 0 || keys_per_server == 0 || servers_per_txn == 0 || numKeys == 0 || columns_per_key_write == 0) {
+                throw new RuntimeException("Write txn required num-servers-per-dc, keys-per-server, servers-per-txn, columns-per-key-write, num-keys, and num-different-keys options");
             }
-            assert servers_per_txn <= num_servers;
-            generateKeysForEachServer(num_servers, numDifferentKeys);
+            assert servers_per_txn <= num_servers_per_dc;
+            generateKeysForEachServer(num_servers_per_dc, numDifferentKeys);
         }
 
         if(operation == Stress.Operations.EXP10) {
-            if (! (write_fraction >= 0 && keys_per_read != 0 && num_servers >= 0 && keys_per_server >= 0 && columnSize != 34)) {
+            if (! (write_fraction >= 0 && keys_per_read != 0 && num_servers_per_dc >= 0 && keys_per_server >= 0 && columnSize != 34)) {
                 throw new RuntimeException("All Exp10 options must be set");
             }
-            numDifferentKeys = keys_per_server * num_servers;
+            numDifferentKeys = keys_per_server * num_servers_per_dc;
             servers_per_txn = keys_per_read;
-            assert servers_per_txn <= num_servers;
+            assert servers_per_txn <= num_servers_per_dc;
             if(!globalZipf)
                 dynamicOneServerGenerateKeysForEachServer(numDifferentKeys);
         }
@@ -800,9 +800,9 @@ public class Session implements Serializable
         return write_transaction_fraction;
     }
 
-    public int getNum_servers()
+    public int getNum_servers_per_dc()
     {
-        return num_servers;
+        return num_servers_per_dc;
     }
 
     public int getKeys_per_server()
@@ -974,15 +974,15 @@ public class Session implements Serializable
     public int getServerForKey(ByteBuffer key) {
         double hashedKey = FBUtilities.hashToBigInteger(key).doubleValue();
         //Cassandra's keyspace is [0, 2**127)
-        double keyrangeSize = Math.pow(2, 127) / num_servers;
+        double keyrangeSize = Math.pow(2, 127) / num_servers_per_dc;
         int serverIndex = (int) (hashedKey / keyrangeSize);
         return serverIndex;
     }
 
     private void dynamicOneServerGenerateKeysForEachServer(int numPopulatedKeys)
     {
-        generatedKeysByServer = new ArrayList<ArrayList<ByteBuffer>>(num_servers);
-        for (int i = 0; i < num_servers; i++)
+        generatedKeysByServer = new ArrayList<ArrayList<ByteBuffer>>(num_servers_per_dc);
+        for (int i = 0; i < num_servers_per_dc; i++)
         {
             generatedKeysByServer.add(new ArrayList<ByteBuffer>());
         }

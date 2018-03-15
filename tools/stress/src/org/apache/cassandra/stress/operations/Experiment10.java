@@ -23,7 +23,7 @@ public class Experiment10 extends Operation {
         super(session, index);
         if (zipfGen == null) {
             int numKeys = session.getNumDifferentKeys();
-            int numServ = session.getNum_servers();
+            int numServ = session.getNum_servers_per_dc();
             int keyPerServ = numKeys / numServ;
             int zipfRange = session.globalZipf ? numKeys : keyPerServ;
             zipfGen = new ZipfianGenerator(zipfRange, session.getZipfianConstant());
@@ -89,9 +89,9 @@ public class Experiment10 extends Operation {
         while (zipfGen == null) ; // wait until initialization is over
         double target_p_w = session.getWrite_fraction();
         int partitionsToReadFrom = session.getKeys_per_read();
-        assert partitionsToReadFrom <= session.getNum_servers();
+        assert partitionsToReadFrom <= session.getNum_servers_per_dc();
         double p_w = (target_p_w * partitionsToReadFrom) / (1.0 - target_p_w + target_p_w * partitionsToReadFrom);
-        int numPartitions = session.getNum_servers();
+        int numPartitions = session.getNum_servers_per_dc();
         double opTypeToss = Stress.randomizer.nextDouble();
         if (opTypeToss <= p_w) {
             write(clientLibrary, numPartitions);

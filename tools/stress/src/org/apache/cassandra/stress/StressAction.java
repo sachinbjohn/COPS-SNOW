@@ -308,7 +308,7 @@ public class StressAction extends Thread
         outputs.add("COPS-SNOW");
         outputs.add(String.valueOf(client.numDCs));
         outputs.add(String.valueOf(client.getKeys_per_server()));
-        outputs.add(String.valueOf(client.getNum_servers()));
+        outputs.add(String.valueOf(client.getNum_servers_per_dc()));
         outputs.add(String.valueOf(client.getColumnSize()));
         outputs.add(String.valueOf(client.getKeys_per_read()));
         outputs.add(String.valueOf(client.getWrite_fraction()));

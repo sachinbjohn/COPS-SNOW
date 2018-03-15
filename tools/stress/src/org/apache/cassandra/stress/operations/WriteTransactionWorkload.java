@@ -64,7 +64,7 @@ public class WriteTransactionWorkload extends Operation
 
         Map<ByteBuffer, Map<String, List<Mutation>>> records = new HashMap<ByteBuffer, Map<String, List<Mutation>>>();
 
-        List<ByteBuffer> keys = generateWriteTxnKeys(session.getNum_servers(), session.getServers_per_txn(), session.getKeys_per_server());
+        List<ByteBuffer> keys = generateWriteTxnKeys(session.getNum_servers_per_dc(), session.getServers_per_txn(), session.getKeys_per_server());
         for (ByteBuffer key : keys)
         {
             records.put(key, session.getColumnFamilyType() == ColumnFamilyType.Super
