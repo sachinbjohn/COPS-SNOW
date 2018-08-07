@@ -287,7 +287,7 @@ public class StressAction extends Thread
         Arrays.sort(readlatencies);
         Arrays.sort(writelatencies);
         /*
-        Expt,Key/Serv,#Serv,ValSize,Key/Read,WriteFrac,Zipf,Threads,Client,NumOps,NumKeys,NumColumns,NumBytes,NUmReads,NumWrites,Duration,Throughput,Ravg,R50,R90,R99,Wavg,W50,W90,W99,#Tx2R,#K2R,#aggR,#aggW,Lsum,Lavg
+        Expt,Key/Serv,#Serv,ValSize,Key/Read,WriteFrac,Zipf,#Clients,Threads,Client,NumOps,NumKeys,NumColumns,NumBytes,NUmReads,NumWrites,Duration,Throughput,Ravg,R50,R90,R99,Wavg,W50,W90,W99,#Tx2R,#K2R,#aggR,#aggW,Lsum,Lavg
          */
 
         int numReads = client.numReads.get();
@@ -313,6 +313,7 @@ public class StressAction extends Thread
         outputs.add(String.valueOf(client.getKeys_per_read()));
         outputs.add(String.valueOf(client.getWrite_fraction()));
         outputs.add(String.valueOf(client.getZipfianConstant()));
+        outputs.add(String.valueOf(client.stressCount));
         outputs.add(String.valueOf(client.getThreads()));
         outputs.add("Client"+client.dcIndex+":"+client.stressIndex);
 
