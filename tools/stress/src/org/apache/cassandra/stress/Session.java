@@ -140,6 +140,7 @@ public class Session implements Serializable
     private int numDifferentKeys = numKeys;
     private float skipKeys       = 0;
     private int threads          = 50;
+    public int localThreads      = -1;
     private int columns          = 5;
     private int columnSize       = 34;
     private int cardinality      = 50;
