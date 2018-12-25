@@ -292,7 +292,7 @@ public class StressAction extends Thread
         Arrays.sort(readlatencies);
         Arrays.sort(writelatencies);
         /*
-        Expt,Key/Serv,#Serv,ValSize,Key/Read,WriteFrac,Zipf,#Clients,Threads,Client,NumOps,NumKeys,NumColumns,NumBytes,NUmReads,NumWrites,Duration,Throughput,Ravg,R50,R90,R99,Wavg,W50,W90,W99,#Tx2R,#K2R,#aggR,#aggW,Lsum,Lavg
+        Expt,Key/Serv,#Serv,ValSize,Key/Read,WriteFrac,Zipf,NumClients,TotalThreads,LocalThreads,Client,NumOps,NumKeys,NumColumns,NumBytes,NUmReads,NumWrites,Duration,Throughput,Ravg,R50,R90,R95,R99,Wavg,W50,W90,W95,W99,#Tx2R,#K2R,#aggR,#aggW,Lsum,Lavg
          */
 
         int numReads = client.numReads.get();
@@ -333,16 +333,18 @@ public class StressAction extends Thread
         outputs.add(String.valueOf(duration));
         outputs.add(String.valueOf(numOps*1000/duration));
 
-        //Ravg,R50,R90,R99
+        //Ravg,R50,R90,R95.R99
         outputs.add(String.valueOf(mean(readlatencies)));
         outputs.add(String.valueOf(percentile(readlatencies,50)));
         outputs.add(String.valueOf(percentile(readlatencies,90)));
+        outputs.add(String.valueOf(percentile(readlatencies,95)));
         outputs.add(String.valueOf(percentile(readlatencies,99)));
 
-        //Wavg,W50,W90,W99
+        //Wavg,W50,W90,W95,W99
         outputs.add(String.valueOf(mean(writelatencies)));
         outputs.add(String.valueOf(percentile(writelatencies,50)));
         outputs.add(String.valueOf(percentile(writelatencies,90)));
+        outputs.add(String.valueOf(percentile(writelatencies,95)));
         outputs.add(String.valueOf(percentile(writelatencies,99)));
 
         //#Tx2R,#K2R,
